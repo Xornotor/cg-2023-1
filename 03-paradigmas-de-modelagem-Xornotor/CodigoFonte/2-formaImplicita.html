@@ -1,0 +1,145 @@
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+		<link rel="icon" type="image/x-icon" href="../../Assets/icons/icon.png">	
+	</head>
+
+	<!-- Import maps polyfill -->
+	<!-- Remove this when import maps will be widely supported -->
+	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "../../Assets/scripts/three.js/build/three.module.js"
+			}
+		}
+	</script>
+
+	<script id="vertShader" type="x-shader/x-vertex">	
+
+		varying vec2 vXY; 	
+	
+		void main(void) {
+			vXY = position.xy;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		}
+	</script>
+	
+	<script id="fragShader" type="x-shader/x-fragment">
+		precision mediump float;
+
+		#define MAX_PTOS 1
+
+		uniform int 	uImpFunc;
+		uniform vec2 	uBlob[3];
+
+		varying vec2 vXY; 
+
+		float isoVal = 3.0;
+		
+		float invRaio(float dist){
+			return max(1.0/pow(dist, 2.0), 0.0);
+		}
+
+		float blob(float dist){
+			float aBlob = 1.0;
+			float bBlob = 2.0;
+			
+			return max(aBlob * exp( -bBlob * pow(dist, 2.0) ), 0.0);
+		}
+
+		float softObj(float dist){
+			float isoVal2 = pow(isoVal, 2.0);
+			float isoVal4 = pow(isoVal, 4.0);
+			float isoVal6 = pow(isoVal, 6.0);
+
+			float aSoft = -0.444444;
+			float bSoft =  1.888889;
+			float cSoft = -2.444444;
+
+			float dist2 = pow(dist, 2.0);
+			float dist4 = pow(dist, 4.0);
+			float dist6 = pow(dist, 6.0);
+
+			return max(pow(1.0 + (aSoft * (dist6 / isoVal6)) + (bSoft * (dist4 / isoVal4)) + (cSoft * (dist2 / isoVal2)), 3.0), 0.0);
+		}
+			
+		void main(void) {	
+
+			vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+			vec3  fImplicita = vec3(0.0); 
+
+			float dist_a = sqrt(pow(uBlob[0].x - vXY.x, 2.0) + pow(uBlob[0].y - vXY.y, 2.0));
+			float dist_a2 = pow(dist_a, 2.0);
+
+			float dist_b = sqrt(pow(uBlob[1].x - vXY.x, 2.0) + pow(uBlob[1].y - vXY.y, 2.0));
+			float dist_b2 = pow(dist_b, 2.0);
+
+			float dist_c = sqrt(pow(uBlob[2].x - vXY.x, 2.0) + pow(uBlob[2].y - vXY.y, 2.0));
+			float dist_c2 = pow(dist_c, 2.0);
+
+			if (uImpFunc == 0){
+				if (dist_a2 > 0.0){
+					fImplicita.r += min(invRaio(dist_a) * 0.7, 0.7);
+					fImplicita.g += min(invRaio(dist_a) * 0.7, 0.7);
+				}
+				if (dist_b2 > 0.0)
+					fImplicita.r += min(invRaio(dist_b) * 0.7, 0.7);
+					fImplicita.b += min(invRaio(dist_b) * 0.8, 0.8);
+				if (dist_c2 > 0.0){
+					fImplicita.g += min(invRaio(dist_c) * 0.8, 0.8);
+					fImplicita.b += min(invRaio(dist_c) * 0.8, 0.8);
+				}
+			}else if (uImpFunc == 1){
+				fImplicita.g = blob(dist_a) * 0.5 + blob(dist_b) * 0.8;
+				fImplicita.r = blob(dist_b) * 0.9 + blob(dist_c) * 0.4;
+				fImplicita.b = blob(dist_c) * 0.8 + blob(dist_a) * 0.5;
+			}else if (uImpFunc == 2){
+				if (dist_a2 <= pow(isoVal, 2.0))
+					fImplicita.b = softObj(dist_a);
+				if (dist_b2 <= pow(isoVal, 2.0))
+					fImplicita.g = softObj(dist_b);
+				if (dist_c2 <= pow(isoVal, 2.0))
+					fImplicita.r = softObj(dist_c);
+			}else{
+				if (dist_a2 > 0.0){
+					fImplicita.r += min(invRaio(dist_a) * 0.7, 0.7);
+					fImplicita.g += min(invRaio(dist_a) * 0.7, 0.7);
+				}
+				if (dist_b2 > 0.0)
+					fImplicita.r += min(invRaio(dist_b) * 0.7, 0.7);
+					fImplicita.b += min(invRaio(dist_b) * 0.8, 0.8);
+				if (dist_c2 > 0.0){
+					fImplicita.g += min(invRaio(dist_c) * 0.8, 0.8);
+					fImplicita.b += min(invRaio(dist_c) * 0.8, 0.8);
+				}
+				fImplicita.g += blob(dist_a) * 0.5 + blob(dist_b) * 0.8;
+				fImplicita.r += blob(dist_b) * 0.9 + blob(dist_c) * 0.4;
+				fImplicita.b += blob(dist_c) * 0.8 + blob(dist_a) * 0.5;
+				if (dist_a2 <= pow(isoVal, 2.0))
+					fImplicita.b += softObj(dist_a);
+				if (dist_b2 <= pow(isoVal, 2.0))
+					fImplicita.g += softObj(dist_b);
+				if (dist_c2 <= pow(isoVal, 2.0))
+					fImplicita.r += softObj(dist_c);
+			}
+
+			// ******* Decide qual função mostrar no canal de cor correspondente
+			color = vec4(fImplicita, 1.0);
+
+			gl_FragColor = color;
+		}
+	</script>
+
+	<script type=module src="./2-formaImplicita.js"></script>
+	
+	<body>
+		<h3 id="output-text">Modelagem Implícita: Lâmpada de Lava</h3>
+		<div id="threejs-canvas"></div>
+	</body>
+</html>
+	</body>
+</html>

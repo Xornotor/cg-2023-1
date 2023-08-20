@@ -1,0 +1,86 @@
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+		<link rel="icon" type="image/x-icon" href="../../Assets/icons/icon.png">	
+	</head>
+
+	<!-- Import maps polyfill -->
+	<!-- Remove this when import maps will be widely supported -->
+	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "../../Assets/scripts/three.js/build/three.module.js"
+			}
+		}
+	</script>
+
+	<script id="vertShader" type="x-shader/x-vertex">	
+
+		varying vec2 vXY; 	
+	
+		void main(void) {
+			vXY = position.xy;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		}
+	</script>
+	
+	<script id="fragShader" type="x-shader/x-fragment">
+		precision mediump float;
+
+		uniform float uRaio;
+		uniform int uPattern;
+		
+		varying vec2 vXY; 	
+			
+		void main(void) {	
+
+			vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+			if(uPattern == 0){
+				if(!(mod(ceil(vXY.x/uRaio), 2.0) == 1.0 ^^ mod(ceil(vXY.y/uRaio), 2.0) == 1.0))
+					color = vec4(1.0, 1.0, 1.0, 1.0);
+			}else if(uPattern == 1){
+				color = vec4(1.0, 1.0, 1.0, 1.0);
+				float losango_origem = 0.0;
+				while(losango_origem <= 25.0){
+					float losango_altura = 0.0;
+					while(losango_altura <= 25.0){
+						float dist = abs((vXY.x-(losango_origem/2.0))) + abs(((vXY.y+(losango_altura))/2.0));
+						if(dist < uRaio){
+							color = vec4(0.941, 0.933, 0.867, 1.0);
+						}
+						dist = abs(vXY.x-losango_origem-(3.*uRaio)) + abs((vXY.y+losango_altura-(2.*uRaio))/2.0);
+						float dist2 = abs(vXY.x-losango_origem-uRaio) + abs((vXY.y+(2.0*uRaio)+losango_altura)/2.0);
+						if(dist < uRaio || dist2 < uRaio){
+							color = vec4(0.553, 0.09, 0.145, 1.0);
+						}
+						
+						dist = abs(vXY.x-losango_origem-uRaio) + abs((vXY.y+losango_altura-(2.*uRaio))/2.0);
+						dist2 = abs(vXY.x-losango_origem+uRaio) + abs((vXY.y+2.0*uRaio+losango_altura)/2.0);
+						if(dist < uRaio || dist2 < uRaio){
+							color = vec4(0.137, 0.122, 0.125, 1.0);
+						}
+						
+						
+						losango_altura += 8.*uRaio;
+					}
+					losango_origem += 4.*uRaio;
+				}
+			}
+			
+			gl_FragColor = color;
+		}
+	</script>
+
+	<script type=module src="./3-FragmentShader.js"></script>
+	
+	<body>
+		<h3 id="output-text">Montando <i>patterns</i> com o <i>Fragment Shader</i></h3>
+		<div id="threejs-canvas"></div>
+	</body>
+</html>
+	</body>
+</html>

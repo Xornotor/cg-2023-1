@@ -1,0 +1,94 @@
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+		<link rel="icon" type="image/x-icon" href="../../Assets/icons/icon.png">	
+	</head>
+
+	<!-- Import maps polyfill -->
+	<!-- Remove this when import maps will be widely supported -->
+	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "../../Assets/scripts/three.js/build/three.module.js"
+			}
+		}
+	</script>
+
+	<script id="VertShader" type="x-shader/x-vertex">
+		//Código do vertex shader aqui
+
+		// Pontos de controle
+		uniform vec3[4] uControlPts;
+
+		// Cores para o Fragment Shader
+		varying vec3 vColor;
+
+		// Matriz de Bézier Cúbica (Transposta)
+		const mat4 bezierMat_T = mat4(1., 0., 0., 0., -3., 3., 0., 0., 3., -6., 3., 0., -1., 3., -3., 1.);
+
+		void main(void){
+			// Conversão de posição x dos pontos em parâmetro variando de 0.0 a 1.0
+			float param = (position.x + 1.0)/2.0;
+
+			// Matriz de parâmetros elevados a n (n = 0, 1, 2, 3)
+			vec4 deg_param = vec4(1.0, param, pow(param, 2.0), pow(param, 3.0));
+
+			// Multiplicação de matriz de Bézier pela matriz de parâmetros
+			vec4 poly_terms = bezierMat_T * deg_param;
+
+			// Vetores de posição x e y dos pontos de controle
+			vec4 control_x = vec4(uControlPts[0].x, uControlPts[1].x, uControlPts[2].x, uControlPts[3].x);
+			vec4 control_y = vec4(uControlPts[0].y, uControlPts[1].y, uControlPts[2].y, uControlPts[3].y);
+
+			// Posições finais da curva de Bézier
+			float x_bezier = dot(poly_terms, control_x);
+			float y_bezier = dot(poly_terms, control_y);
+
+			// Associação de cor dependendo do valor de param
+			if(param < 1.0/8.0)
+				vColor = vec3(1.0, 0.0, 0.0);
+			else if(param >= 1.0/8.0 && param < 2.0/8.0)
+				vColor = vec3(1.0, param * 8.0 - 1.0, 0.0);
+			else if(param >= 2.0/8.0 && param < 3.0/8.0)
+				vColor = vec3(3.0 - param * 8.0, 1.0, 0.0);
+			else if(param >= 3.0/8.0 && param < 4.0/8.0)
+				vColor = vec3(0.0, 1.0, param*8.0 - 3.0);
+			else if(param >= 4.0/8.0 && param < 5.0/8.0)
+				vColor = vec3(0.0, 5.0 - param * 8.0, 1.0);
+			else if(param >= 5.0/8.0 && param < 6.0/8.0)
+				vColor = vec3((param * 8.0 - 5.0) * 0.8, 0.0, 1.0);
+			else if(param >= 6.0/8.0 && param < 7.0/8.0)
+				vColor = vec3(0.8 + (param * 8.0 - 6.0) * 0.2, (param * 8.0 - 6.0) * 0.2, 0.6 + (7.0 - param*8.0) * 0.4);
+			else
+				vColor = vec3(1.0, 0.2, 0.6);
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(x_bezier, y_bezier, 0.0, 1.0);
+		}
+	</script>
+
+	<script id="FragShader" type="x-shader/x-fragment">
+		//Código do fragment shader aqui
+
+		uniform vec3[4] uControlPts;
+
+		varying vec3 vColor;
+
+		void main(void){
+			float brightness = 0.05 + abs(1.9 * uControlPts[1].y);
+			vec3 color = vColor * brightness;
+			gl_FragColor = vec4(color, 1.0);
+		}
+	</script>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.3.2/math.js"></script>
+
+	<script type=module src="./1-formaParametrica-Bezier.js"></script>
+	
+	<body>
+		<h3 id="output-text">Forma paramétrica calculada no Vertex Shader</h3>
+		<div id="threejs-canvas"></div>
+	</body>
+</html>
